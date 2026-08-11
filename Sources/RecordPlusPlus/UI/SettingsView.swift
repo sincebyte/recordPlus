@@ -32,13 +32,13 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text("Threshold: \(recordingManager.threshold, specifier: "%.3f")")
                     .font(.caption)
-                Slider(value: $recordingManager.threshold, in: 0.0...0.5, step: 0.01)
+                Slider(value: $recordingManager.threshold, in: 0.0...1.0, step: 0.01)
             }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("Smoothness: \(recordingManager.smoothness, specifier: "%.3f")")
                     .font(.caption)
-                Slider(value: $recordingManager.smoothness, in: 0.0...0.2, step: 0.01)
+                Slider(value: $recordingManager.smoothness, in: 0.0...0.5, step: 0.01)
             }
 
             VStack(alignment: .leading, spacing: 4) {

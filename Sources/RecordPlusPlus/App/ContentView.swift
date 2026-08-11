@@ -17,11 +17,15 @@ struct ContentView: View {
             await permissionManager.checkPermissions()
             if permissionManager.allPermissionsGranted {
                 await windowListVM.refreshWindows()
+                windowListVM.startAutoRefresh()
             }
         }
         .onChange(of: permissionManager.screenRecordingGranted) { granted in
             if granted {
                 Task { await windowListVM.refreshWindows() }
+                windowListVM.startAutoRefresh()
+            } else {
+                windowListVM.stopAutoRefresh()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
@@ -43,20 +47,7 @@ struct ContentView: View {
                 }
             }
 
-            if windowListVM.isLoading {
-                Section {
-                    HStack {
-                        Spacer()
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Loading windows...")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                    .padding(.vertical, 8)
-                }
-            } else if let error = windowListVM.errorMessage {
+            if let error = windowListVM.errorMessage {
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
                         Label(error, systemImage: "exclamationmark.triangle")

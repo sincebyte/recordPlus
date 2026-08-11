@@ -64,9 +64,10 @@ actor WindowEnumerator {
             return false
         }
 
+        if !window.isOnScreen { return false }
+
         let frame = window.frame
         if frame.width < 50 || frame.height < 50 { return false }
-        if frame.width < 200 && frame.height < 200 && !window.isOnScreen { return false }
 
         return true
     }

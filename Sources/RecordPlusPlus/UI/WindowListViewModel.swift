@@ -7,19 +7,38 @@ import Combine
 final class WindowListViewModel: ObservableObject {
     @Published var applications: [(String, [WindowInfo])] = []
     @Published var selectedWindow: WindowInfo?
-    @Published var isLoading = false
     @Published var errorMessage: String?
 
     private let enumerator = WindowEnumerator.shared
+    private var autoRefreshTask: Task<Void, Never>?
+
+    func startAutoRefresh() {
+        stopAutoRefresh()
+        autoRefreshTask = Task {
+            while !Task.isCancelled {
+                await refreshWindows()
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+            }
+        }
+    }
+
+    func stopAutoRefresh() {
+        autoRefreshTask?.cancel()
+        autoRefreshTask = nil
+    }
 
     func refreshWindows() async {
-        isLoading = true
         errorMessage = nil
-        defer { isLoading = false }
 
         do {
             let windows = try await enumerator.enumerateWindows()
+            let previousSelection = selectedWindow
             applications = await enumerator.groupByApplication(windows)
+            if let prev = previousSelection, let stillExists = windows.first(where: { $0.id == prev.id }) {
+                selectedWindow = stillExists
+            } else if previousSelection != nil {
+                selectedWindow = nil
+            }
         } catch {
             errorMessage = "Failed to enumerate windows: \(error.localizedDescription)"
             Logger.shared.error("Window enumeration failed: \(error)")
