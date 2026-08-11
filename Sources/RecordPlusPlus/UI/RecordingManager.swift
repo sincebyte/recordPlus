@@ -6,6 +6,7 @@ import CoreMedia
 import CoreVideo
 import CoreGraphics
 import VideoToolbox
+import ScreenCaptureKit
 
 @MainActor
 final class RecordingManager: ObservableObject {
@@ -32,31 +33,10 @@ final class RecordingManager: ObservableObject {
 
     var outputURL: URL? { frameProcessor?.outputURL }
 
-    private func alphaConfig(for window: WindowInfo) -> AlphaConfig {
-        let nsColor = NSColor(keyColor)
+    private var borderSIMD: SIMD4<Float> {
+        let nsColor = NSColor(borderColor)
         let srgb = nsColor.usingColorSpace(.sRGB) ?? nsColor
-
-        let nsBorder = NSColor(borderColor)
-        let sBorder = nsBorder.usingColorSpace(.sRGB) ?? nsBorder
-
-        return AlphaConfig(
-            keyColor: CGColor(
-                srgbRed: srgb.redComponent,
-                green: srgb.greenComponent,
-                blue: srgb.blueComponent,
-                alpha: 1.0
-            ),
-            threshold: threshold,
-            smoothness: smoothness,
-            spillSuppression: spillSuppression,
-            cornerRadius: cornerRadius,
-            width: Float(selectedPreset.width),
-            height: Float(selectedPreset.height),
-            borderColor: SIMD4<Float>(Float(sBorder.redComponent), Float(sBorder.greenComponent), Float(sBorder.blueComponent), Float(sBorder.alphaComponent)),
-            borderWidth: borderWidth,
-            contentWidth: Float(window.frame.width),
-            contentHeight: Float(window.frame.height)
-        )
+        return SIMD4<Float>(Float(srgb.redComponent), Float(srgb.greenComponent), Float(srgb.blueComponent), Float(srgb.alphaComponent))
     }
 
     private var cgKeyColor: CGColor {
@@ -94,11 +74,40 @@ final class RecordingManager: ObservableObject {
     }
 
     private func startRecordingAsync(window: WindowInfo) async throws {
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+        guard let scWindow = content.windows.first(where: { $0.windowID == window.windowID }),
+              let display = content.displays.first(where: { scWindow.frame.intersects($0.frame) }) else {
+            throw CaptureError.windowNotFound
+        }
+        let canvasW = Int(CGDisplayPixelsWide(display.displayID))
+        let canvasH = Int(CGDisplayPixelsHigh(display.displayID))
+        let scale = CGFloat(canvasW) / display.frame.width
+        let winX = Float((scWindow.frame.origin.x - display.frame.origin.x) * scale)
+        let winY = Float((scWindow.frame.origin.y - display.frame.origin.y) * scale)
+        let contentW = Float(scWindow.frame.width * scale)
+        let contentH = Float(scWindow.frame.height * scale)
+
         let generator = try AlphaGenerator()
-        generator.updateConfig(alphaConfig(for: window))
+        let config = AlphaConfig(
+            keyColor: cgKeyColor,
+            threshold: threshold,
+            smoothness: smoothness,
+            spillSuppression: spillSuppression,
+            cornerRadius: cornerRadius,
+            width: Float(canvasW),
+            height: Float(canvasH),
+            borderColor: borderSIMD,
+            borderWidth: borderWidth,
+            contentWidth: contentW,
+            contentHeight: contentH,
+            windowX: winX,
+            windowY: winY
+        )
+        generator.updateConfig(config)
 
         let outputURL = ExportManager.generateOutputURL()
-        let enc = ProResEncoder(config: selectedPreset, outputURL: outputURL)
+        let encoderConfig = EncoderConfig(width: canvasW, height: canvasH, frameRate: selectedPreset.frameRate, codec: .proRes4444)
+        let enc = ProResEncoder(config: encoderConfig, outputURL: outputURL)
         try enc.startWriting()
 
         let processor = FrameProcessor(generator: generator, encoder: enc, frameRate: selectedPreset.frameRate)
@@ -156,8 +165,8 @@ final class RecordingManager: ObservableObject {
 
         try await captureManager.startCapture(
             windowID: window.windowID,
-            width: selectedPreset.width,
-            height: selectedPreset.height,
+            width: canvasW,
+            height: canvasH,
             frameRate: selectedPreset.frameRate,
             keyColor: cgKeyColor
         )

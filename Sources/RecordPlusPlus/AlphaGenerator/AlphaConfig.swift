@@ -13,6 +13,8 @@ struct AlphaConfig: Equatable {
     var borderWidth: Float
     var contentWidth: Float
     var contentHeight: Float
+    var windowX: Float
+    var windowY: Float
 
     static let `default` = AlphaConfig(
         keyColor: SIMD4<Float>(1.0, 0.0, 1.0, 1.0),
@@ -25,14 +27,16 @@ struct AlphaConfig: Equatable {
         height: 1080,
         borderWidth: 0,
         contentWidth: 1920,
-        contentHeight: 1080
+        contentHeight: 1080,
+        windowX: 0,
+        windowY: 0
     )
 
     var cgKeyColor: CGColor {
         CGColor(srgbRed: CGFloat(keyColor.x), green: CGFloat(keyColor.y), blue: CGFloat(keyColor.z), alpha: 1.0)
     }
 
-    init(keyColor: SIMD4<Float>, borderColor: SIMD4<Float>, thresholdLow: Float, thresholdHigh: Float, spillSuppression: Float, cornerRadius: Float, width: Float, height: Float, borderWidth: Float, contentWidth: Float, contentHeight: Float) {
+    init(keyColor: SIMD4<Float>, borderColor: SIMD4<Float>, thresholdLow: Float, thresholdHigh: Float, spillSuppression: Float, cornerRadius: Float, width: Float, height: Float, borderWidth: Float, contentWidth: Float, contentHeight: Float, windowX: Float, windowY: Float) {
         self.keyColor = keyColor
         self.borderColor = borderColor
         self.thresholdLow = thresholdLow
@@ -44,9 +48,11 @@ struct AlphaConfig: Equatable {
         self.borderWidth = borderWidth
         self.contentWidth = contentWidth
         self.contentHeight = contentHeight
+        self.windowX = windowX
+        self.windowY = windowY
     }
 
-    init(keyColor: CGColor, threshold: Float, smoothness: Float, spillSuppression: Float = 0.3, cornerRadius: Float = 0, width: Float = 1920, height: Float = 1080, borderColor: SIMD4<Float> = SIMD4<Float>(0.82, 0.82, 0.82, 1.0), borderWidth: Float = 0, contentWidth: Float = 1920, contentHeight: Float = 1080) {
+    init(keyColor: CGColor, threshold: Float, smoothness: Float, spillSuppression: Float = 0.3, cornerRadius: Float = 0, width: Float = 1920, height: Float = 1080, borderColor: SIMD4<Float> = SIMD4<Float>(0.82, 0.82, 0.82, 1.0), borderWidth: Float = 0, contentWidth: Float = 1920, contentHeight: Float = 1080, windowX: Float = 0, windowY: Float = 0) {
         let comps = keyColor.components ?? [1.0, 0.0, 1.0, 1.0]
         self.keyColor = SIMD4<Float>(Float(comps[0]), Float(comps[1]), Float(comps[2]), 1.0)
         self.borderColor = borderColor
@@ -59,5 +65,7 @@ struct AlphaConfig: Equatable {
         self.borderWidth = borderWidth
         self.contentWidth = contentWidth
         self.contentHeight = contentHeight
+        self.windowX = windowX
+        self.windowY = windowY
     }
 }

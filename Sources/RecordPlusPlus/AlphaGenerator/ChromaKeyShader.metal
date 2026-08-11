@@ -13,6 +13,8 @@ struct AlphaConfig {
     float borderWidth;
     float contentWidth;
     float contentHeight;
+    float windowX;
+    float windowY;
 };
 
 float roundedRectSDF(float2 p, float2 halfSize, float r) {
@@ -30,39 +32,37 @@ kernel void chromaKeyKernel(
         return;
     }
 
-    float4 inColor = inTexture.read(gid);
-    float3 keyColor = config.keyColor.rgb;
+float3 keyColor = config.keyColor.rgb;
 
-    float3 diff = inColor.rgb - keyColor;
-    float distance = sqrt(diff.x * diff.x + diff.y * diff.y + diff.z * diff.z);
-
-    float alpha;
-    if (distance < config.thresholdLow) {
-        alpha = 0.0;
-    } else if (distance > config.thresholdHigh) {
-        alpha = 1.0;
+    int2 srcPos = int2(gid) - int2(config.windowX, config.windowY);
+    float4 srcColor;
+    if (srcPos.x >= 0 && srcPos.x < int(config.contentWidth) &&
+        srcPos.y >= 0 && srcPos.y < int(config.contentHeight)) {
+        srcColor = inTexture.read(uint2(srcPos));
     } else {
-        alpha = (distance - config.thresholdLow) / (config.thresholdHigh - config.thresholdLow);
+        srcColor = config.keyColor;
     }
 
-    float3 desaturated = inColor.rgb;
+    float alpha;
+    float dist = length(srcColor.rgb - keyColor);
+    if (dist < config.thresholdLow) {
+        alpha = 0.0;
+    } else if (dist > config.thresholdHigh) {
+        alpha = 1.0;
+    } else {
+        alpha = (dist - config.thresholdLow) / (config.thresholdHigh - config.thresholdLow);
+    }
+
+    float3 desaturated = srcColor.rgb;
     if (config.spillSuppression > 0.0 && alpha < 1.0) {
         float spill = max(0.0, (1.0 - alpha) * config.spillSuppression);
-        float3 corrected = inColor.rgb - keyColor * spill;
+        float3 corrected = srcColor.rgb - keyColor * spill;
         float3 gray = float3(dot(corrected, float3(0.299, 0.587, 0.114)));
         desaturated = mix(corrected, gray, config.spillSuppression * (1.0 - alpha));
     }
 
-    float2 center = float2(config.width * 0.5, config.height * 0.5);
-    float2 halfSize = float2(config.width * 0.5, config.height * 0.5);
-    float2 p = float2(gid) - center;
-    float d = roundedRectSDF(p, halfSize, config.cornerRadius);
-
-    float cornerMask = 1.0 - smoothstep(-2.0, 1.0, d);
-    float contentAlpha = alpha * cornerMask;
-
-    float3 finalColor = desaturated * contentAlpha;
-    float finalAlpha = contentAlpha;
+    float3 finalColor = desaturated * alpha;
+    float finalAlpha = alpha;
 
     if (config.borderWidth > 0.0 && alpha > 0.5) {
         int bw = max(1, int(config.borderWidth));
@@ -75,8 +75,14 @@ kernel void chromaKeyKernel(
                 int2 ngid = int2(gid) + dirs[i];
                 if (ngid.x >= 0 && ngid.x < int(config.width) &&
                     ngid.y >= 0 && ngid.y < int(config.height)) {
-                    float4 nColor = inTexture.read(uint2(ngid));
-                    float nDist = length(nColor.rgb - keyColor);
+                    int2 nSrc = ngid - int2(config.windowX, config.windowY);
+                    float nDist;
+                    if (nSrc.x >= 0 && nSrc.x < int(config.contentWidth) &&
+                        nSrc.y >= 0 && nSrc.y < int(config.contentHeight)) {
+                        nDist = length(inTexture.read(uint2(nSrc)).rgb - keyColor);
+                    } else {
+                        nDist = 0.0;
+                    }
                     if (nDist < config.thresholdLow) {
                         skip = true;
                     }
@@ -92,8 +98,14 @@ kernel void chromaKeyKernel(
                     int2 ngid = int2(gid) + dirs[i];
                     if (ngid.x >= 0 && ngid.x < int(config.width) &&
                         ngid.y >= 0 && ngid.y < int(config.height)) {
-                        float4 nColor = inTexture.read(uint2(ngid));
-                        float nDist = length(nColor.rgb - keyColor);
+                        int2 nSrc = ngid - int2(config.windowX, config.windowY);
+                        float nDist;
+                        if (nSrc.x >= 0 && nSrc.x < int(config.contentWidth) &&
+                            nSrc.y >= 0 && nSrc.y < int(config.contentHeight)) {
+                            nDist = length(inTexture.read(uint2(nSrc)).rgb - keyColor);
+                        } else {
+                            nDist = 0.0;
+                        }
                         if (nDist < config.thresholdLow) {
                             nearBg = true;
                         }
