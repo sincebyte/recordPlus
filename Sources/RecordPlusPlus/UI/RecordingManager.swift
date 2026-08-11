@@ -5,7 +5,6 @@ import Combine
 import CoreMedia
 import CoreVideo
 import CoreGraphics
-import VideoToolbox
 import ScreenCaptureKit
 
 @MainActor
@@ -17,8 +16,8 @@ final class RecordingManager: ObservableObject {
     @Published var currentFileSize: String?
     @Published var errorMessage: String?
     @Published var keyColor: Color = Color(red: 1, green: 0, blue: 1)
-    @Published var threshold: Float = 0.7
-    @Published var smoothness: Float = 0.05
+    @Published var threshold: Float = 0.2
+    @Published var smoothness: Float = 0.15
     @Published var spillSuppression: Float = 0.3
     @Published var selectedPreset: EncoderConfig = .hd1080p30
     @Published var cornerRadius: Float = 0
@@ -27,9 +26,13 @@ final class RecordingManager: ObservableObject {
 
     private let captureManager = CaptureManager()
     private var frameProcessor: FrameProcessor?
+    private var generator: AlphaGenerator?
     private var startTime: Date?
     private var isStopping = false
     private var timerCancellable: AnyCancellable?
+    private var windowUpdateTimer: AnyCancellable?
+    private var windowID: CGWindowID = 0
+    private var lastWindowFrame: CGRect = .zero
 
     var outputURL: URL? { frameProcessor?.outputURL }
 
@@ -112,44 +115,20 @@ final class RecordingManager: ObservableObject {
 
         let processor = FrameProcessor(generator: generator, encoder: enc, frameRate: selectedPreset.frameRate)
         frameProcessor = processor
+        self.generator = generator
+        self.windowID = window.windowID
+        self.lastWindowFrame = scWindow.frame
 
         startTime = Date()
 
         let fp = processor
-        var transferSessionCreated = false
-        var transferSession: VTPixelTransferSession?
         captureManager.onFrameReceived = { buffer in
             var pixelBuffer: CVPixelBuffer?
             pixelBuffer = CMSampleBufferGetImageBuffer(buffer)
             if pixelBuffer == nil {
                 pixelBuffer = RecordingManager.createPixelBuffer(from: buffer)
             }
-            guard var pixelBuffer = pixelBuffer else { return }
-
-            let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
-            if format != kCVPixelFormatType_32BGRA {
-                if !transferSessionCreated {
-                    transferSessionCreated = true
-                    VTPixelTransferSessionCreate(allocator: nil, pixelTransferSessionOut: &transferSession)
-                }
-                if let session = transferSession {
-                    var bgraBuffer: CVPixelBuffer?
-                    let attrs: [String: Any] = [
-                        kCVPixelBufferMetalCompatibilityKey as String: true,
-                        kCVPixelBufferIOSurfacePropertiesKey as String: [:]
-                    ]
-                    CVPixelBufferCreate(kCFAllocatorDefault,
-                        CVPixelBufferGetWidth(pixelBuffer),
-                        CVPixelBufferGetHeight(pixelBuffer),
-                        kCVPixelFormatType_32BGRA,
-                        attrs as CFDictionary,
-                        &bgraBuffer)
-                    if let bgraBuffer = bgraBuffer {
-                        VTPixelTransferSessionTransferImage(session, from: pixelBuffer, to: bgraBuffer)
-                        pixelBuffer = bgraBuffer
-                    }
-                }
-            }
+            guard let pixelBuffer = pixelBuffer else { return }
 
             Task {
                 do {
@@ -178,6 +157,12 @@ final class RecordingManager: ObservableObject {
             .sink { [weak self] _ in
                 self?.updateStatus()
             }
+
+        windowUpdateTimer = Timer.publish(every: 1.0, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateWindowFrame()
+            }
     }
 
     func stopRecording() {
@@ -186,6 +171,8 @@ final class RecordingManager: ObservableObject {
 
         timerCancellable?.cancel()
         timerCancellable = nil
+        windowUpdateTimer?.cancel()
+        windowUpdateTimer = nil
 
         captureManager.onFrameReceived = nil
 
@@ -206,6 +193,7 @@ final class RecordingManager: ObservableObject {
 
             updateStatus()
             frameProcessor = nil
+            generator = nil
             isRecording = false
             isStopping = false
             Logger.shared.info("Recording finished: \(outputPath ?? "unknown")")
@@ -225,6 +213,49 @@ final class RecordingManager: ObservableObject {
                 currentFileSize = ExportManager.formatFileSize(size)
             }
         }
+    }
+
+    private func updateWindowFrame() {
+        guard let gen = generator, windowID != 0 else { return }
+        let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+        guard let windowInfo = windowList.first(where: { ($0[kCGWindowNumber as String] as? CGWindowID) == windowID }),
+              let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: Any],
+              let x = boundsDict["X"] as? CGFloat,
+              let y = boundsDict["Y"] as? CGFloat,
+              let w = boundsDict["Width"] as? CGFloat,
+              let h = boundsDict["Height"] as? CGFloat else {
+            return
+        }
+        let newFrame = CGRect(x: x, y: y, width: w, height: h)
+        guard newFrame != lastWindowFrame else { return }
+        lastWindowFrame = newFrame
+
+        let displayID = CGMainDisplayID()
+        let canvasW = Int(CGDisplayPixelsWide(displayID))
+        let canvasH = Int(CGDisplayPixelsHigh(displayID))
+        let displayFrame = CGDisplayBounds(displayID)
+        let scale = CGFloat(canvasW) / displayFrame.width
+        let winX = Float((newFrame.origin.x - displayFrame.origin.x) * scale)
+        let winY = Float((newFrame.origin.y - displayFrame.origin.y) * scale)
+        let contentW = Float(newFrame.width * scale)
+        let contentH = Float(newFrame.height * scale)
+
+        let config = AlphaConfig(
+            keyColor: cgKeyColor,
+            threshold: threshold,
+            smoothness: smoothness,
+            spillSuppression: spillSuppression,
+            cornerRadius: cornerRadius,
+            width: Float(canvasW),
+            height: Float(canvasH),
+            borderColor: borderSIMD,
+            borderWidth: borderWidth,
+            contentWidth: contentW,
+            contentHeight: contentH,
+            windowX: winX,
+            windowY: winY
+        )
+        gen.updateConfig(config)
     }
 
     private static func createPixelBuffer(from sampleBuffer: CMSampleBuffer) -> CVPixelBuffer? {

@@ -28,6 +28,9 @@ struct ContentView: View {
                 windowListVM.stopAutoRefresh()
             }
         }
+        .onChange(of: recordingManager.isRecording) { isRecording in
+            windowListVM.isAutoRefreshPaused = isRecording
+        }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task {
                 await permissionManager.checkPermissions()

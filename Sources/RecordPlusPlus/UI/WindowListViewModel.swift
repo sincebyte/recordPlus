@@ -11,8 +11,18 @@ final class WindowListViewModel: ObservableObject {
 
     private let enumerator = WindowEnumerator.shared
     private var autoRefreshTask: Task<Void, Never>?
+    var isAutoRefreshPaused = false {
+        didSet {
+            if isAutoRefreshPaused {
+                stopAutoRefresh()
+            } else {
+                startAutoRefresh()
+            }
+        }
+    }
 
     func startAutoRefresh() {
+        guard !isAutoRefreshPaused else { return }
         stopAutoRefresh()
         autoRefreshTask = Task {
             while !Task.isCancelled {

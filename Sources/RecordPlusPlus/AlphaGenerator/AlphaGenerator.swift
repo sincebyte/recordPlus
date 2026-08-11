@@ -4,13 +4,28 @@ import MetalKit
 import CoreVideo
 import CoreMedia
 import IOSurface
+import os
 
 final class AlphaGenerator: @unchecked Sendable {
     private let device: MTLDevice
     private let commandQueue: MTLCommandQueue
     private let pipelineState: MTLComputePipelineState
     private let threadgroupSize: MTLSize
-    private var config = AlphaConfig.default
+    private var _config = AlphaConfig.default
+    private var configLock = os_unfair_lock()
+
+    private var config: AlphaConfig {
+        get {
+            os_unfair_lock_lock(&configLock)
+            defer { os_unfair_lock_unlock(&configLock) }
+            return _config
+        }
+        set {
+            os_unfair_lock_lock(&configLock)
+            _config = newValue
+            os_unfair_lock_unlock(&configLock)
+        }
+    }
 
     init() throws {
         guard let device = MTLCreateSystemDefaultDevice() else {
