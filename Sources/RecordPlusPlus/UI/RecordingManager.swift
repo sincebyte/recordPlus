@@ -33,6 +33,10 @@ final class RecordingManager: ObservableObject {
     private var windowUpdateTimer: AnyCancellable?
     private var windowID: CGWindowID = 0
     private var lastWindowFrame: CGRect = .zero
+    private var captureDisplayID: CGDirectDisplayID = 0
+    private var captureCanvasW: Int = 0
+    private var captureCanvasH: Int = 0
+    private var captureDisplayFrame: CGRect = .zero
 
     var outputURL: URL? { frameProcessor?.outputURL }
 
@@ -118,6 +122,10 @@ final class RecordingManager: ObservableObject {
         self.generator = generator
         self.windowID = window.windowID
         self.lastWindowFrame = scWindow.frame
+        self.captureDisplayID = display.displayID
+        self.captureCanvasW = canvasW
+        self.captureCanvasH = canvasH
+        self.captureDisplayFrame = display.frame
 
         startTime = Date()
 
@@ -158,7 +166,7 @@ final class RecordingManager: ObservableObject {
                 self?.updateStatus()
             }
 
-        windowUpdateTimer = Timer.publish(every: 1.0, on: .main, in: .common)
+        windowUpdateTimer = Timer.publish(every: 0.1, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.updateWindowFrame()
@@ -196,6 +204,10 @@ final class RecordingManager: ObservableObject {
             generator = nil
             isRecording = false
             isStopping = false
+            captureDisplayID = 0
+            captureCanvasW = 0
+            captureCanvasH = 0
+            captureDisplayFrame = .zero
             Logger.shared.info("Recording finished: \(outputPath ?? "unknown")")
         }
     }
@@ -230,13 +242,9 @@ final class RecordingManager: ObservableObject {
         guard newFrame != lastWindowFrame else { return }
         lastWindowFrame = newFrame
 
-        let displayID = CGMainDisplayID()
-        let canvasW = Int(CGDisplayPixelsWide(displayID))
-        let canvasH = Int(CGDisplayPixelsHigh(displayID))
-        let displayFrame = CGDisplayBounds(displayID)
-        let scale = CGFloat(canvasW) / displayFrame.width
-        let winX = Float((newFrame.origin.x - displayFrame.origin.x) * scale)
-        let winY = Float((newFrame.origin.y - displayFrame.origin.y) * scale)
+        let scale = CGFloat(captureCanvasW) / captureDisplayFrame.width
+        let winX = Float((newFrame.origin.x - captureDisplayFrame.origin.x) * scale)
+        let winY = Float((newFrame.origin.y - captureDisplayFrame.origin.y) * scale)
         let contentW = Float(newFrame.width * scale)
         let contentH = Float(newFrame.height * scale)
 
@@ -246,8 +254,8 @@ final class RecordingManager: ObservableObject {
             smoothness: smoothness,
             spillSuppression: spillSuppression,
             cornerRadius: cornerRadius,
-            width: Float(canvasW),
-            height: Float(canvasH),
+            width: Float(captureCanvasW),
+            height: Float(captureCanvasH),
             borderColor: borderSIMD,
             borderWidth: borderWidth,
             contentWidth: contentW,

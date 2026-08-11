@@ -34,6 +34,48 @@ inline float3 despillColor(float3 srcColor, float3 keyColor, float alpha, float 
     return clamp(corrected, 0.0, 1.0);
 }
 
+inline bool isInsideRoundedRect(float2 pos, float2 size, float radius) {
+    float px = pos.x;
+    float py = pos.y;
+    float w = size.x;
+    float h = size.y;
+    float r = radius;
+
+    if (px < 0.0 || px >= w || py < 0.0 || py >= h) {
+        return false;
+    }
+
+    if (r <= 0.0) {
+        return true;
+    }
+
+    if (px < r && py < r) {
+        float dx = px - r;
+        float dy = py - r;
+        return (dx * dx + dy * dy) <= (r * r);
+    }
+
+    if (px > w - r && py < r) {
+        float dx = px - (w - r);
+        float dy = py - r;
+        return (dx * dx + dy * dy) <= (r * r);
+    }
+
+    if (px < r && py > h - r) {
+        float dx = px - r;
+        float dy = py - (h - r);
+        return (dx * dx + dy * dy) <= (r * r);
+    }
+
+    if (px > w - r && py > h - r) {
+        float dx = px - (w - r);
+        float dy = py - (h - r);
+        return (dx * dx + dy * dy) <= (r * r);
+    }
+
+    return true;
+}
+
 kernel void chromaKeyKernel(
     texture2d<float, access::read> inTexture [[texture(0)]],
     texture2d<float, access::write> outTexture [[texture(1)]],
@@ -47,9 +89,9 @@ kernel void chromaKeyKernel(
     float3 keyColor = config.keyColor.rgb;
 
     int2 srcPos = int2(gid) - int2(config.windowX, config.windowY);
+    bool insideContent = isInsideRoundedRect(float2(srcPos), float2(config.contentWidth, config.contentHeight), config.cornerRadius);
     float4 srcColor;
-    if (srcPos.x >= 0 && srcPos.x < int(config.contentWidth) &&
-        srcPos.y >= 0 && srcPos.y < int(config.contentHeight)) {
+    if (insideContent) {
         srcColor = inTexture.read(uint2(srcPos));
     } else {
         srcColor = config.keyColor;
@@ -68,8 +110,7 @@ kernel void chromaKeyKernel(
                 ngid.y >= 0 && ngid.y < int(config.height)) {
                 int2 nSrc = ngid - int2(config.windowX, config.windowY);
                 float3 nColor;
-                if (nSrc.x >= 0 && nSrc.x < int(config.contentWidth) &&
-                    nSrc.y >= 0 && nSrc.y < int(config.contentHeight)) {
+                if (isInsideRoundedRect(float2(nSrc), float2(config.contentWidth, config.contentHeight), config.cornerRadius)) {
                     nColor = inTexture.read(uint2(nSrc)).rgb;
                 } else {
                     nColor = keyColor;
@@ -99,8 +140,7 @@ kernel void chromaKeyKernel(
                     ngid.y >= 0 && ngid.y < int(config.height)) {
                     int2 nSrc = ngid - int2(config.windowX, config.windowY);
                     float nDist;
-                    if (nSrc.x >= 0 && nSrc.x < int(config.contentWidth) &&
-                        nSrc.y >= 0 && nSrc.y < int(config.contentHeight)) {
+                    if (isInsideRoundedRect(float2(nSrc), float2(config.contentWidth, config.contentHeight), config.cornerRadius)) {
                         nDist = chromaDistance(inTexture.read(uint2(nSrc)).rgb, keyColor);
                     } else {
                         nDist = 0.0;
@@ -122,8 +162,7 @@ kernel void chromaKeyKernel(
                         ngid.y >= 0 && ngid.y < int(config.height)) {
                         int2 nSrc = ngid - int2(config.windowX, config.windowY);
                         float nDist;
-                        if (nSrc.x >= 0 && nSrc.x < int(config.contentWidth) &&
-                            nSrc.y >= 0 && nSrc.y < int(config.contentHeight)) {
+                        if (isInsideRoundedRect(float2(nSrc), float2(config.contentWidth, config.contentHeight), config.cornerRadius)) {
                             nDist = chromaDistance(inTexture.read(uint2(nSrc)).rgb, keyColor);
                         } else {
                             nDist = 0.0;
