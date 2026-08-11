@@ -16,10 +16,13 @@ final class RecordingManager: ObservableObject {
     @Published var currentFileSize: String?
     @Published var errorMessage: String?
     @Published var keyColor: Color = Color(red: 1, green: 0, blue: 1)
-    @Published var threshold: Float = 0.1
+    @Published var threshold: Float = 0.7
     @Published var smoothness: Float = 0.05
     @Published var spillSuppression: Float = 0.3
     @Published var selectedPreset: EncoderConfig = .hd1080p30
+    @Published var cornerRadius: Float = 0
+    @Published var borderColor: Color = Color(red: 0.82, green: 0.82, blue: 0.82)
+    @Published var borderWidth: Float = 1
 
     private let captureManager = CaptureManager()
     private var frameProcessor: FrameProcessor?
@@ -29,9 +32,13 @@ final class RecordingManager: ObservableObject {
 
     var outputURL: URL? { frameProcessor?.outputURL }
 
-    private var alphaConfig: AlphaConfig {
+    private func alphaConfig(for window: WindowInfo) -> AlphaConfig {
         let nsColor = NSColor(keyColor)
         let srgb = nsColor.usingColorSpace(.sRGB) ?? nsColor
+
+        let nsBorder = NSColor(borderColor)
+        let sBorder = nsBorder.usingColorSpace(.sRGB) ?? nsBorder
+
         return AlphaConfig(
             keyColor: CGColor(
                 srgbRed: srgb.redComponent,
@@ -41,7 +48,14 @@ final class RecordingManager: ObservableObject {
             ),
             threshold: threshold,
             smoothness: smoothness,
-            spillSuppression: spillSuppression
+            spillSuppression: spillSuppression,
+            cornerRadius: cornerRadius,
+            width: Float(selectedPreset.width),
+            height: Float(selectedPreset.height),
+            borderColor: SIMD4<Float>(Float(sBorder.redComponent), Float(sBorder.greenComponent), Float(sBorder.blueComponent), Float(sBorder.alphaComponent)),
+            borderWidth: borderWidth,
+            contentWidth: Float(window.frame.width),
+            contentHeight: Float(window.frame.height)
         )
     }
 
@@ -81,7 +95,7 @@ final class RecordingManager: ObservableObject {
 
     private func startRecordingAsync(window: WindowInfo) async throws {
         let generator = try AlphaGenerator()
-        generator.updateConfig(alphaConfig)
+        generator.updateConfig(alphaConfig(for: window))
 
         let outputURL = ExportManager.generateOutputURL()
         let enc = ProResEncoder(config: selectedPreset, outputURL: outputURL)

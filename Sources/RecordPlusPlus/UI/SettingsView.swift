@@ -47,6 +47,25 @@ struct SettingsView: View {
                 Slider(value: $recordingManager.spillSuppression, in: 0.0...1.0, step: 0.05)
             }
 
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Corner Radius: \(Int(recordingManager.cornerRadius))")
+                    .font(.caption)
+                Slider(value: $recordingManager.cornerRadius, in: 0...60, step: 1)
+            }
+
+            Divider()
+
+            Label("Border", systemImage: "square.dashed")
+                .font(.headline)
+
+            ColorPicker("Border Color", selection: $recordingManager.borderColor)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Border Width: \(Int(recordingManager.borderWidth))")
+                    .font(.caption)
+                Slider(value: $recordingManager.borderWidth, in: 0...20, step: 0.5)
+            }
+
             Divider()
 
             if let outputURL = recordingManager.outputURL {
