@@ -16,7 +16,7 @@ enum StreamConfiguration {
         config.height = height
         config.minimumFrameInterval = CMTime(value: 1, timescale: CMTimeScale(frameRate))
         config.queueDepth = 6
-        config.pixelFormat = kCVPixelFormatType_32BGRA
+        config.pixelFormat = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange
         config.backgroundColor = keyColor
         config.showsCursor = false
         config.capturesAudio = false

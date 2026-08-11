@@ -5,6 +5,7 @@ import Combine
 import CoreMedia
 import CoreVideo
 import CoreGraphics
+import VideoToolbox
 
 @MainActor
 final class RecordingManager: ObservableObject {
@@ -92,12 +93,41 @@ final class RecordingManager: ObservableObject {
         startTime = Date()
 
         let fp = processor
+        var transferSessionCreated = false
+        var transferSession: VTPixelTransferSession?
         captureManager.onFrameReceived = { buffer in
-            var pixelBuffer = CMSampleBufferGetImageBuffer(buffer)
+            var pixelBuffer: CVPixelBuffer?
+            pixelBuffer = CMSampleBufferGetImageBuffer(buffer)
             if pixelBuffer == nil {
                 pixelBuffer = RecordingManager.createPixelBuffer(from: buffer)
             }
-            guard let pixelBuffer = pixelBuffer else { return }
+            guard var pixelBuffer = pixelBuffer else { return }
+
+            let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
+            if format != kCVPixelFormatType_32BGRA {
+                if !transferSessionCreated {
+                    transferSessionCreated = true
+                    VTPixelTransferSessionCreate(allocator: nil, pixelTransferSessionOut: &transferSession)
+                }
+                if let session = transferSession {
+                    var bgraBuffer: CVPixelBuffer?
+                    let attrs: [String: Any] = [
+                        kCVPixelBufferMetalCompatibilityKey as String: true,
+                        kCVPixelBufferIOSurfacePropertiesKey as String: [:]
+                    ]
+                    CVPixelBufferCreate(kCFAllocatorDefault,
+                        CVPixelBufferGetWidth(pixelBuffer),
+                        CVPixelBufferGetHeight(pixelBuffer),
+                        kCVPixelFormatType_32BGRA,
+                        attrs as CFDictionary,
+                        &bgraBuffer)
+                    if let bgraBuffer = bgraBuffer {
+                        VTPixelTransferSessionTransferImage(session, from: pixelBuffer, to: bgraBuffer)
+                        pixelBuffer = bgraBuffer
+                    }
+                }
+            }
+
             Task {
                 do {
                     try await fp.process(pixelBuffer)
@@ -188,13 +218,16 @@ final class RecordingManager: ObservableObject {
         let status = CVPixelBufferCreate(kCFAllocatorDefault, width, height, kCVPixelFormatType_32BGRA, attrs as CFDictionary, &pixelBuffer)
         guard status == kCVReturnSuccess, let pb = pixelBuffer else { return nil }
 
-        CVPixelBufferLockBaseAddress(pb, [])
-        defer { CVPixelBufferUnlockBaseAddress(pb, []) }
+        if let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) {
+            CVPixelBufferLockBaseAddress(pb, [])
+            defer { CVPixelBufferUnlockBaseAddress(pb, []) }
 
-        if let dataBuffer = CMSampleBufferGetDataBuffer(sampleBuffer),
-           let baseAddress = CVPixelBufferGetBaseAddress(pb) {
-            let bytesPerRow = CVPixelBufferGetBytesPerRow(pb)
-            CMBlockBufferCopyDataBytes(dataBuffer, atOffset: 0, dataLength: height * bytesPerRow, destination: baseAddress)
+            if let baseAddress = CVPixelBufferGetBaseAddress(pb) {
+                let dataLength = CMBlockBufferGetDataLength(dataBuffer)
+                let bytesPerRow = CVPixelBufferGetBytesPerRow(pb)
+                let copyLength = min(dataLength, height * bytesPerRow)
+                CMBlockBufferCopyDataBytes(dataBuffer, atOffset: 0, dataLength: copyLength, destination: baseAddress)
+            }
         }
 
         return pb
