@@ -1,0 +1,135 @@
+import Foundation
+import Metal
+import MetalKit
+import CoreVideo
+import CoreMedia
+import IOSurface
+
+final class AlphaGenerator: @unchecked Sendable {
+    private let device: MTLDevice
+    private let commandQueue: MTLCommandQueue
+    private let pipelineState: MTLComputePipelineState
+    private let threadgroupSize: MTLSize
+    private var config = AlphaConfig.default
+
+    init() throws {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            throw CaptureError.metalDeviceNotFound
+        }
+        self.device = device
+
+        guard let commandQueue = device.makeCommandQueue() else {
+            throw CaptureError.metalCommandQueueCreationFailed
+        }
+        self.commandQueue = commandQueue
+
+        guard let library = device.makeDefaultLibrary(),
+              let function = library.makeFunction(name: "chromaKeyKernel") else {
+            throw CaptureError.metalShaderNotFound
+        }
+
+        do {
+            pipelineState = try device.makeComputePipelineState(function: function)
+        } catch {
+            throw CaptureError.metalComputePipelineCreationFailed(error.localizedDescription)
+        }
+
+        threadgroupSize = MTLSize(width: 16, height: 16, depth: 1)
+    }
+
+    func updateConfig(_ newConfig: AlphaConfig) {
+        config = newConfig
+    }
+
+    func processPixelBuffer(_ pixelBuffer: CVPixelBuffer) throws -> CVPixelBuffer {
+        let width = CVPixelBufferGetWidth(pixelBuffer)
+        let height = CVPixelBufferGetHeight(pixelBuffer)
+
+        let outBuffer = try createOutputPixelBuffer(width: width, height: height)
+
+        CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
+        CVPixelBufferLockBaseAddress(outBuffer, [])
+
+        defer {
+            CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly)
+            CVPixelBufferUnlockBaseAddress(outBuffer, [])
+        }
+
+        let inTexture = try makeTexture(from: pixelBuffer, width: width, height: height)
+        let outTexture = try makeTexture(from: outBuffer, width: width, height: height)
+
+        guard let commandBuffer = commandQueue.makeCommandBuffer(),
+              let encoder = commandBuffer.makeComputeCommandEncoder() else {
+            throw CaptureError.encoderCreationFailed("Failed to create Metal command buffer/encoder")
+        }
+
+        encoder.setComputePipelineState(pipelineState)
+        encoder.setTexture(inTexture, index: 0)
+        encoder.setTexture(outTexture, index: 1)
+
+        var metalConfig = config
+        encoder.setBytes(&metalConfig, length: MemoryLayout<AlphaConfig>.stride, index: 0)
+
+        let gridSize = MTLSize(width: width, height: height, depth: 1)
+        let threadsPerGroup = MTLSize(
+            width: min(threadgroupSize.width, pipelineState.threadExecutionWidth),
+            height: min(threadgroupSize.height, pipelineState.maxTotalThreadsPerThreadgroup / pipelineState.threadExecutionWidth),
+            depth: 1
+        )
+        encoder.dispatchThreads(gridSize, threadsPerThreadgroup: threadsPerGroup)
+        encoder.endEncoding()
+        commandBuffer.commit()
+        commandBuffer.waitUntilCompleted()
+
+        return outBuffer
+    }
+
+    private func makeTexture(from pixelBuffer: CVPixelBuffer, width: Int, height: Int) throws -> MTLTexture {
+        let desc = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .bgra8Unorm,
+            width: width,
+            height: height,
+            mipmapped: false
+        )
+        desc.usage = [.shaderRead, .shaderWrite]
+        desc.storageMode = .shared
+
+        if let iosurface = CVPixelBufferGetIOSurface(pixelBuffer)?.takeUnretainedValue() {
+            guard let texture = device.makeTexture(descriptor: desc, iosurface: iosurface, plane: 0) else {
+                throw CaptureError.invalidPixelBuffer
+            }
+            return texture
+        }
+
+        guard let baseAddress = CVPixelBufferGetBaseAddress(pixelBuffer) else {
+            throw CaptureError.invalidPixelBuffer
+        }
+        let bytesPerRow = CVPixelBufferGetBytesPerRow(pixelBuffer)
+
+        guard let texture = device.makeTexture(descriptor: desc) else {
+            throw CaptureError.invalidPixelBuffer
+        }
+        let region = MTLRegionMake2D(0, 0, width, height)
+        texture.replace(region: region, mipmapLevel: 0, withBytes: baseAddress, bytesPerRow: bytesPerRow)
+        return texture
+    }
+
+    private func createOutputPixelBuffer(width: Int, height: Int) throws -> CVPixelBuffer {
+        var pixelBuffer: CVPixelBuffer?
+        let attrs: [String: Any] = [
+            kCVPixelBufferMetalCompatibilityKey as String: true,
+            kCVPixelBufferIOSurfacePropertiesKey as String: [:]
+        ]
+        let status = CVPixelBufferCreate(
+            kCFAllocatorDefault,
+            width, height,
+            kCVPixelFormatType_32BGRA,
+            attrs as CFDictionary,
+            &pixelBuffer
+        )
+        guard status == kCVReturnSuccess, let buffer = pixelBuffer else {
+            throw CaptureError.invalidPixelBuffer
+        }
+        return buffer
+    }
+}

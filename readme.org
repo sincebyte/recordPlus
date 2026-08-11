@@ -1,0 +1,397 @@
+你是一名资深 macOS 音视频开发工程师，请帮我设计并实现一个 macOS 原生窗口录制应用。
+
+## 项目目标
+
+开发一个 macOS 原生窗口录制应用，用于捕获单个应用窗口并以 Chroma Key 方式生成带透明通道（Alpha Channel）的视频素材，最终生成可直接导入 DaVinci Resolve / Final Cut Pro 的 ProRes 4444 视频文件。
+
+主要用途：
+
+* 录制 Emacs 窗口
+* 录制 Chrome 窗口
+* 录制 Terminal 窗口
+* 将窗口作为独立图层叠加到真人拍摄的视频中
+* 实现类似 Craftzdog YouTube 视频中的悬浮代码窗口效果
+
+## 可行性分析
+
+### ScreenCaptureKit 的 Alpha 能力
+
+核心结论：macOS 的 WindowServer 在合成窗口到显存缓冲区时已丢失 Alpha 信息。ScreenCaptureKit 捕获的是合成后的最终画面，即使使用 BGRA 像素格式，Alpha 字节始终为 =0xFF=（完全不透明）。无法直接获取原生 Alpha 通道。
+
+### 解决方案：Chroma Key（色键抠像）
+
+Chroma Key 是一种视频合成技术：指定一个关键色（Key Color），将画面中所有该颜色的像素替换为透明，其余像素保持不透明。
+
+本项目利用 =SCStreamConfiguration.backgroundColor= 属性，将窗口外区域填充为指定颜色（如品红色 =#FF00FF=），然后通过 GPU Shader 将该颜色像素的 Alpha 设为 0，窗口内容像素 Alpha 保持 1，从而生成 Alpha 通道。
+
+原理流程：
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│  SCStream 单窗口捕获                                          │
+│  backgroundColor = 品红色 (#FF00FF)                           │
+│  窗口外区域 → 品红色  窗口内容 → 原始画面                      │
+│                         │                                    │
+│                         ▼                                    │
+│  CMSampleBuffer → CVPixelBuffer (BGRA, Alpha=0xFF 全不透明)   │
+│                         │                                    │
+│                         ▼                                    │
+│  Metal Compute Shader (Chroma Key)                            │
+│  检测品红色像素 → 设 Alpha=0                                 │
+│  非品红色像素   → 设 Alpha=1                                 │
+│  边缘过渡像素   → 按距离做 Alpha 渐变                         │
+│                         │                                    │
+│                         ▼                                    │
+│  CVPixelBuffer (BGRA, 带真实 Alpha 通道)                      │
+│                         │                                    │
+│                         ▼                                    │
+│  AVAssetWriter → Apple ProRes 4444 (yuva444p10le)            │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 为什么选品红色 (#FF00FF)
+
+终端、代码编辑器、浏览器中几乎不会出现品红色（=R=255, G=0, B=255=），最大程度避免误判。如果用户窗口内容确实包含品红色，可配置其他关键色（如绿色 =#00FF00=）。
+
+### 与 OBS 方案的对比
+
+| | OBS | 本项目 |
+|------|------|------|
+| Alpha 生成方式 | Chroma Key 滤镜 | Metal Compute Shader（自定义） |
+| 窗口捕获 | ScreenCaptureKit | ScreenCaptureKit |
+| 编码器 | 第三方 ProRes 编码器 | AVFoundation 原生 |
+| 性能 | 中等 | 更优（Metal GPU 加速，零拷贝） |
+| 可定制性 | 低 | 高（完全可控的 Shader 管线） |
+
+## 核心需求
+
+### 1. 使用 Apple 原生框架
+
+必须基于：
+
+* Swift
+* ScreenCaptureKit
+* AVFoundation
+* Metal (用于 Chroma Key Alpha 生成)
+* CoreMedia
+* CoreVideo
+
+不要使用：
+
+* OBS SDK
+* ReplayKit
+* 第三方录屏库
+
+### 2. 窗口级捕获
+
+程序需要：
+
+* 枚举当前 macOS 可捕获窗口
+* 显示运行中的应用列表
+* 选择指定窗口进行录制
+
+例如：
+
+```
+Applications
+
+[x] Emacs
+[ ] Google Chrome
+[ ] Terminal
+[ ] Safari
+```
+
+选择后只捕获该窗口。
+
+要求：
+
+* 窗口移动时仍然跟踪
+* 不受桌面背景影响
+* 不录制其他窗口
+
+### 3. Chroma Key Alpha 生成
+
+这是核心需求。通过 Metal Compute Shader 从指定背景色生成 Alpha 通道。
+
+最终输出的帧数据必须为：
+
+```
+BGRA
+
+B: Blue
+G: Green
+R: Red
+A: Alpha
+```
+
+窗口外区域：
+
+```
+Alpha = 0  (完全透明)
+```
+
+窗口内容：
+
+```
+Alpha = 1  (完全不透明)
+```
+
+窗口阴影边缘：
+
+```
+Alpha 渐变 (0.0 ~ 1.0)
+```
+
+需要支持：
+
+* 圆角窗口 → 边缘反锯齿 Alpha 渐变
+* macOS 阴影 → 半透明 Alpha 梯度
+* 窗口内容半透明区域 → 保留原始透明度（需特殊处理，见下文）
+
+**Chroma Key Shader 逻辑：**
+
+```
+对于每个像素，计算其与关键色 (keyColor) 的距离：
+
+  distance = sqrt((R - keyColor.R)² + (G - keyColor.G)² + (B - keyColor.B)²)
+
+  if distance < threshold_low:
+      alpha = 0.0        // 完全匹配 → 透明
+  elif distance > threshold_high:
+      alpha = 1.0        // 窗口内容 → 不透明
+  else:
+      alpha = (distance - threshold_low) / (threshold_high - threshold_low)  // 渐变过渡
+```
+
+**半透明区域处理：**
+
+如果窗口内容本身包含半透明区域（如终端背景的半透明模糊效果），应在 Chroma Key 之前先捕获一层黑色背景帧，再捕获一层白色背景帧，通过两次捕获的差异推算真实 Alpha。此为进阶功能，初期可实现基础 Chroma Key，后续迭代加入。
+
+**可配置参数：**
+
+* =keyColor=: 关键色（默认 =#FF00FF= 品红色）
+* =threshold=: 颜色匹配阈值（默认 =0.1=）
+* =smoothness=: 边缘平滑度（默认 =0.05=）
+
+### 4. 输出格式
+
+优先支持：
+
+**ProRes 4444**
+
+输出：
+
+```
+.mov
+
+Video: Apple ProRes 4444
+Pixel Format: yuva444p10le
+Channels: RGB + Alpha
+```
+
+要求：
+
+DaVinci Resolve 导入后可以直接识别 Alpha 通道。
+
+同时可选支持：
+
+* HEVC Alpha (=.mov=, 需要 macOS 11+)
+* PNG 序列（用于逐帧调试）
+
+### 5. 视频参数
+
+支持配置：
+
+分辨率：
+
+```
+1920x1080
+2560x1440
+3840x2160
+```
+
+帧率：
+
+```
+30fps
+60fps
+```
+
+编码：
+
+```
+ProRes 4444
+```
+
+像素格式：
+
+```
+BGRA (kCVPixelFormatType_32BGRA)
+```
+
+### 6. 架构设计
+
+请先设计完整架构。
+
+建议模块：
+
+```
+Record++
+│
+├── App/
+│   ├── RecordPlusPlusApp.swift          # App 入口
+│   └── ContentView.swift                # 主界面
+│
+├── UI/
+│   ├── WindowListViewModel.swift        # 窗口列表 ViewModel
+│   ├── WindowListRow.swift              # 单行窗口视图
+│   ├── RecordingControlView.swift       # 录制控制栏
+│   └── SettingsView.swift               # 设置面板
+│
+├── WindowManager/
+│   ├── WindowEnumerator.swift           # SCShareableContent 窗口枚举
+│   └── WindowInfo.swift                 # 窗口信息模型
+│
+├── CaptureEngine/
+│   ├── CaptureManager.swift             # SCStream 生命周期管理
+│   ├── StreamConfiguration.swift        # SCStreamConfiguration 配置
+│   └── CaptureError.swift               # 错误类型定义
+│
+├── AlphaGenerator/
+│   ├── ChromaKeyShader.metal            # Metal Compute Shader（Chroma Key 核心）
+│   ├── AlphaGenerator.swift             # Shader 调度与参数管理
+│   └── AlphaConfig.swift                # 关键色、阈值等配置
+│
+├── VideoEncoder/
+│   ├── ProResEncoder.swift              # AVAssetWriter ProRes 4444 编码
+│   ├── PixelBufferPool.swift            # CVPixelBufferPool 管理
+│   └── EncoderConfig.swift              # 分辨率、帧率、编码参数
+│
+├── ExportManager/
+│   ├── ExportManager.swift              # 导出流程控制
+│   └── OutputValidator.swift            # ffprobe 验证
+│
+├── Permissions/
+│   └── PermissionManager.swift          # 屏幕录制 & 辅助功能权限
+│
+└── Utilities/
+    ├── Extensions.swift                 # 扩展方法
+    └── Logger.swift                     # 日志工具
+```
+
+**数据流：**
+
+```
+WindowEnumerator
+       │
+       ▼
+CaptureManager (SCStream)
+       │
+       │ CMSampleBuffer (window capture + backgroundColor)
+       ▼
+AlphaGenerator (Metal Chroma Key Shader)
+       │
+       │ CVPixelBuffer (BGRA + real Alpha)
+       ▼
+ProResEncoder (AVAssetWriter)
+       │
+       │ ProRes 4444 .mov (yuva444p10le)
+       ▼
+ExportManager
+```
+
+### 7. UI 需求
+
+开发一个简单 macOS App：
+
+功能：
+
+* 列出当前所有可捕获窗口（应用名 + 窗口标题）
+* 选择目标窗口
+* 配置关键色（默认品红色）
+* 配置阈值与平滑度
+* 开始录制
+* 停止录制
+* 显示录制状态（时长、帧数、文件大小）
+* 设置输出路径
+* 录制预览（可选，显示实时 Chroma Key 效果预览）
+
+界面简洁即可，使用 SwiftUI 实现。
+
+### 8. 权限处理
+
+需要处理以下 macOS 权限：
+
+```
+Screen Recording Permission   → SCShareableContent / SCStream
+Accessibility Permission      → 窗口枚举（可选，部分场景需要）
+```
+
+需要：
+
+* 启动时检测权限状态
+* 权限缺失时弹出系统授权对话框
+* 录制过程中权限被撤销时优雅降级
+
+### 9. 性能要求
+
+目标设备：
+
+Apple Silicon:
+
+* M1 Max
+* M2
+* M3
+* M4
+
+要求：
+
+* SCStream 使用 GPU 采集（默认行为）
+* Chroma Key 使用 Metal Compute Shader 在 GPU 上执行
+* 避免 CPU 逐帧复制像素数据
+* 使用 CVPixelBufferPool 复用缓冲区
+* Metal Shader 与编码器使用共享 IOSurface 实现零拷贝
+* 30fps 下 CPU 占用 < 10%
+* 60fps 下 CPU 占用 < 15%
+
+### 10. 调试验证
+
+使用 ffprobe 检查输出文件：
+
+正确：
+
+```
+codec_name=prores
+pix_fmt=yuva444p10le
+```
+
+错误：
+
+```
+pix_fmt=yuv420p   (丢失 Alpha)
+```
+
+在 DaVinci Resolve 中确认 Alpha 通道：
+
+1. 导入 =output.mov= 到 Media Pool
+2. 拖入 Timeline
+3. 在 Timeline 中右键片段 → =Clip Attributes → Video=
+4. 确认 =Alpha Mode= 为 =Premultiplied= 或 =Straight=
+5. 在片段下方放置一个彩色背景
+6. 窗口外区域应显示背景色，窗口内容应正常显示
+
+## 开发步骤要求
+
+请按照以下顺序：
+
+1. 分析 ScreenCaptureKit 能否获取窗口 Alpha（已完成，结论：不能，需用 Chroma Key）
+2. 设计整体架构（已完成，见上文）
+3. 创建 Swift 项目（Xcode + SwiftUI + Metal）
+4. 实现窗口枚举（=WindowEnumerator=）
+5. 实现单窗口捕获（=CaptureManager= + =SCStream=）
+6. 实现 Chroma Key Alpha 生成（=AlphaGenerator= + Metal Shader）
+7. 实现 ProRes 4444 编码（=ProResEncoder= + =AVAssetWriter=）
+8. 实现完整 GUI（窗口列表 + 录制控制 + 参数配置）
+9. 提供测试流程与验证方法
+
+请不要只给概念说明，需要输出可以逐步实现的工程方案和代码。

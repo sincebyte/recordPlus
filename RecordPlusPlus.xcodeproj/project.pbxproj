@@ -1,0 +1,455 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0C4864FB17B8763DC8EC9D19 /* WindowEnumerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB08DF862053DE26C0A894EC /* WindowEnumerator.swift */; };
+		1B1F8034F858CCC3C734C045 /* PixelBufferPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA7051EDBF37D4386F67BEE9 /* PixelBufferPool.swift */; };
+		1FF0877446203D2B3B32E85C /* CaptureError.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDE4B97A970FD7B626018109 /* CaptureError.swift */; };
+		24018EF1DCD57A4B23796E65 /* AlphaGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA7800C0969C0BBAD373E96A /* AlphaGenerator.swift */; };
+		38FA0E3CA0E12E57D93ACF95 /* ExportManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5959373A869B3CA12A63B3BF /* ExportManager.swift */; };
+		3E09891A61B53D2FA9F7419D /* WindowListRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4B03E51B44FB5F8A66BF7AF /* WindowListRow.swift */; };
+		535A56C7B812CB7F3B2E262E /* RecordPlusPlusApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F642587314B27413F35DBA4D /* RecordPlusPlusApp.swift */; };
+		53FA35DB1575A3EFC50EBDB2 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27A94904F63A657657D519EF /* Logger.swift */; };
+		551ECCEA321E2413D0B5638B /* PermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3220A1767F33958F4D66026F /* PermissionManager.swift */; };
+		62DFA695B65214C952546366 /* WindowListViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1466C719EA72615118A8FAB /* WindowListViewModel.swift */; };
+		70C376419FAE6F2FA4DC54AF /* AlphaConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9134E3B5EECF9CD3EB0FB0 /* AlphaConfig.swift */; };
+		794896424F53491F32ED8915 /* RecordingControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7023F2093790FA26A4364D3 /* RecordingControlView.swift */; };
+		806024186EC1566E9250AC3F /* FrameProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93D34B376258F5FD751AD95 /* FrameProcessor.swift */; };
+		8A015E376B3D8FB087DCEADD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A034A6807AF6C4CC99870F3 /* ContentView.swift */; };
+		A0D8F8C2BCA2811F1DD52783 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE10CD17122BAAB3EAC0CB7B /* Extensions.swift */; };
+		A76FA1AFBF88D13D3A195BAB /* AccessibilityScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EAC3444AF98F6CF1BC3CBB4 /* AccessibilityScanner.swift */; };
+		A95A8E4B57951CB615032755 /* StreamConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 646854BF8FE5B258B3FAD39E /* StreamConfiguration.swift */; };
+		AD3079F1E77EAFF7EF5DA9E6 /* ChromaKeyShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = F0FFC2978BC4A82CE0517CB0 /* ChromaKeyShader.metal */; };
+		B636CD24705D3BC7035FBC27 /* WindowInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B5408BCA55932DC2299217F /* WindowInfo.swift */; };
+		BBF7BD5D30966E863933987E /* CaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CF2FFEC203B269B40A525CA /* CaptureManager.swift */; };
+		BE0DF12F2998CF8E0BB235AB /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F38A6E40768F5F54AEEB4134 /* SettingsView.swift */; };
+		C00D50AC43D65A1C2AE91FA3 /* ProResEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5AFB3FC3C2FE56F8504CC20 /* ProResEncoder.swift */; };
+		C1A8A25DDF7FF24B35A37766 /* RecordingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C029E42F1F9DD9C278D9428A /* RecordingManager.swift */; };
+		E39FC86B95DA30E91973BA78 /* OutputValidator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 559AC1F5661E3ECFB8EDCBFE /* OutputValidator.swift */; };
+		F25CD4261F7B1AD3C85A1361 /* EncoderConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = DFDF2AEE361F950D4BF05E56 /* EncoderConfig.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A034A6807AF6C4CC99870F3 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		27A94904F63A657657D519EF /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		2B46FCC9F8D16439CB6017E3 /* RecordPlusPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RecordPlusPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3220A1767F33958F4D66026F /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		559AC1F5661E3ECFB8EDCBFE /* OutputValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputValidator.swift; sourceTree = "<group>"; };
+		5959373A869B3CA12A63B3BF /* ExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportManager.swift; sourceTree = "<group>"; };
+		5CF2FFEC203B269B40A525CA /* CaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureManager.swift; sourceTree = "<group>"; };
+		646854BF8FE5B258B3FAD39E /* StreamConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StreamConfiguration.swift; sourceTree = "<group>"; };
+		6B5408BCA55932DC2299217F /* WindowInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowInfo.swift; sourceTree = "<group>"; };
+		7EAC3444AF98F6CF1BC3CBB4 /* AccessibilityScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityScanner.swift; sourceTree = "<group>"; };
+		A7023F2093790FA26A4364D3 /* RecordingControlView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingControlView.swift; sourceTree = "<group>"; };
+		AE9134E3B5EECF9CD3EB0FB0 /* AlphaConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphaConfig.swift; sourceTree = "<group>"; };
+		BDE4B97A970FD7B626018109 /* CaptureError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureError.swift; sourceTree = "<group>"; };
+		C029E42F1F9DD9C278D9428A /* RecordingManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordingManager.swift; sourceTree = "<group>"; };
+		CA7051EDBF37D4386F67BEE9 /* PixelBufferPool.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PixelBufferPool.swift; sourceTree = "<group>"; };
+		CE10CD17122BAAB3EAC0CB7B /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
+		D1466C719EA72615118A8FAB /* WindowListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowListViewModel.swift; sourceTree = "<group>"; };
+		D5AFB3FC3C2FE56F8504CC20 /* ProResEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProResEncoder.swift; sourceTree = "<group>"; };
+		DA7800C0969C0BBAD373E96A /* AlphaGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphaGenerator.swift; sourceTree = "<group>"; };
+		DB08DF862053DE26C0A894EC /* WindowEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowEnumerator.swift; sourceTree = "<group>"; };
+		DFDF2AEE361F950D4BF05E56 /* EncoderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderConfig.swift; sourceTree = "<group>"; };
+		E4B03E51B44FB5F8A66BF7AF /* WindowListRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowListRow.swift; sourceTree = "<group>"; };
+		E93D34B376258F5FD751AD95 /* FrameProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FrameProcessor.swift; sourceTree = "<group>"; };
+		F0FFC2978BC4A82CE0517CB0 /* ChromaKeyShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = ChromaKeyShader.metal; sourceTree = "<group>"; };
+		F38A6E40768F5F54AEEB4134 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		F642587314B27413F35DBA4D /* RecordPlusPlusApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecordPlusPlusApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		05B2FF06C13CD3248A3214DA /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				2B46FCC9F8D16439CB6017E3 /* RecordPlusPlus.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		08D6B58FF1C785B25522A940 /* ExportManager */ = {
+			isa = PBXGroup;
+			children = (
+				5959373A869B3CA12A63B3BF /* ExportManager.swift */,
+				559AC1F5661E3ECFB8EDCBFE /* OutputValidator.swift */,
+			);
+			path = ExportManager;
+			sourceTree = "<group>";
+		};
+		0E655F446C9405E89323D4BA /* WindowManager */ = {
+			isa = PBXGroup;
+			children = (
+				DB08DF862053DE26C0A894EC /* WindowEnumerator.swift */,
+				6B5408BCA55932DC2299217F /* WindowInfo.swift */,
+			);
+			path = WindowManager;
+			sourceTree = "<group>";
+		};
+		12F63AE784209F0D99A860B7 /* Permissions */ = {
+			isa = PBXGroup;
+			children = (
+				7EAC3444AF98F6CF1BC3CBB4 /* AccessibilityScanner.swift */,
+				3220A1767F33958F4D66026F /* PermissionManager.swift */,
+			);
+			path = Permissions;
+			sourceTree = "<group>";
+		};
+		15A6328126CD28C37EDDD675 /* RecordPlusPlus */ = {
+			isa = PBXGroup;
+			children = (
+				19555CB871BA027FFBA94070 /* AlphaGenerator */,
+				A23AE54F28F2CD20EC138199 /* App */,
+				41481684C386D2D8A17E252D /* CaptureEngine */,
+				08D6B58FF1C785B25522A940 /* ExportManager */,
+				12F63AE784209F0D99A860B7 /* Permissions */,
+				915AFF69E6DD33B540B64339 /* UI */,
+				271F5147927F5BD2D044372A /* Utilities */,
+				C7027DFB07C6545E5E7EF6BE /* VideoEncoder */,
+				0E655F446C9405E89323D4BA /* WindowManager */,
+			);
+			name = RecordPlusPlus;
+			path = Sources/RecordPlusPlus;
+			sourceTree = "<group>";
+		};
+		19555CB871BA027FFBA94070 /* AlphaGenerator */ = {
+			isa = PBXGroup;
+			children = (
+				AE9134E3B5EECF9CD3EB0FB0 /* AlphaConfig.swift */,
+				DA7800C0969C0BBAD373E96A /* AlphaGenerator.swift */,
+				F0FFC2978BC4A82CE0517CB0 /* ChromaKeyShader.metal */,
+			);
+			path = AlphaGenerator;
+			sourceTree = "<group>";
+		};
+		1D0D66B51E168F0CF5C63C59 = {
+			isa = PBXGroup;
+			children = (
+				15A6328126CD28C37EDDD675 /* RecordPlusPlus */,
+				05B2FF06C13CD3248A3214DA /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		271F5147927F5BD2D044372A /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				CE10CD17122BAAB3EAC0CB7B /* Extensions.swift */,
+				27A94904F63A657657D519EF /* Logger.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		41481684C386D2D8A17E252D /* CaptureEngine */ = {
+			isa = PBXGroup;
+			children = (
+				BDE4B97A970FD7B626018109 /* CaptureError.swift */,
+				5CF2FFEC203B269B40A525CA /* CaptureManager.swift */,
+				646854BF8FE5B258B3FAD39E /* StreamConfiguration.swift */,
+			);
+			path = CaptureEngine;
+			sourceTree = "<group>";
+		};
+		915AFF69E6DD33B540B64339 /* UI */ = {
+			isa = PBXGroup;
+			children = (
+				E93D34B376258F5FD751AD95 /* FrameProcessor.swift */,
+				A7023F2093790FA26A4364D3 /* RecordingControlView.swift */,
+				C029E42F1F9DD9C278D9428A /* RecordingManager.swift */,
+				F38A6E40768F5F54AEEB4134 /* SettingsView.swift */,
+				E4B03E51B44FB5F8A66BF7AF /* WindowListRow.swift */,
+				D1466C719EA72615118A8FAB /* WindowListViewModel.swift */,
+			);
+			path = UI;
+			sourceTree = "<group>";
+		};
+		A23AE54F28F2CD20EC138199 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				1A034A6807AF6C4CC99870F3 /* ContentView.swift */,
+				F642587314B27413F35DBA4D /* RecordPlusPlusApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		C7027DFB07C6545E5E7EF6BE /* VideoEncoder */ = {
+			isa = PBXGroup;
+			children = (
+				DFDF2AEE361F950D4BF05E56 /* EncoderConfig.swift */,
+				CA7051EDBF37D4386F67BEE9 /* PixelBufferPool.swift */,
+				D5AFB3FC3C2FE56F8504CC20 /* ProResEncoder.swift */,
+			);
+			path = VideoEncoder;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		69C2EB00C7AF19960829FDC1 /* RecordPlusPlus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9A77FDC12FEC7205864FD445 /* Build configuration list for PBXNativeTarget "RecordPlusPlus" */;
+			buildPhases = (
+				D0D97303C636DB9AF6FD42CB /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = RecordPlusPlus;
+			packageProductDependencies = (
+			);
+			productName = RecordPlusPlus;
+			productReference = 2B46FCC9F8D16439CB6017E3 /* RecordPlusPlus.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		562B6C328B56BD95971351BF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = F43609CEE6911A630B10C502 /* Build configuration list for PBXProject "RecordPlusPlus" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 1D0D66B51E168F0CF5C63C59;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 05B2FF06C13CD3248A3214DA /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				69C2EB00C7AF19960829FDC1 /* RecordPlusPlus */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D0D97303C636DB9AF6FD42CB /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A76FA1AFBF88D13D3A195BAB /* AccessibilityScanner.swift in Sources */,
+				70C376419FAE6F2FA4DC54AF /* AlphaConfig.swift in Sources */,
+				24018EF1DCD57A4B23796E65 /* AlphaGenerator.swift in Sources */,
+				1FF0877446203D2B3B32E85C /* CaptureError.swift in Sources */,
+				BBF7BD5D30966E863933987E /* CaptureManager.swift in Sources */,
+				AD3079F1E77EAFF7EF5DA9E6 /* ChromaKeyShader.metal in Sources */,
+				8A015E376B3D8FB087DCEADD /* ContentView.swift in Sources */,
+				F25CD4261F7B1AD3C85A1361 /* EncoderConfig.swift in Sources */,
+				38FA0E3CA0E12E57D93ACF95 /* ExportManager.swift in Sources */,
+				A0D8F8C2BCA2811F1DD52783 /* Extensions.swift in Sources */,
+				806024186EC1566E9250AC3F /* FrameProcessor.swift in Sources */,
+				53FA35DB1575A3EFC50EBDB2 /* Logger.swift in Sources */,
+				E39FC86B95DA30E91973BA78 /* OutputValidator.swift in Sources */,
+				551ECCEA321E2413D0B5638B /* PermissionManager.swift in Sources */,
+				1B1F8034F858CCC3C734C045 /* PixelBufferPool.swift in Sources */,
+				C00D50AC43D65A1C2AE91FA3 /* ProResEncoder.swift in Sources */,
+				535A56C7B812CB7F3B2E262E /* RecordPlusPlusApp.swift in Sources */,
+				794896424F53491F32ED8915 /* RecordingControlView.swift in Sources */,
+				C1A8A25DDF7FF24B35A37766 /* RecordingManager.swift in Sources */,
+				BE0DF12F2998CF8E0BB235AB /* SettingsView.swift in Sources */,
+				A95A8E4B57951CB615032755 /* StreamConfiguration.swift in Sources */,
+				0C4864FB17B8763DC8EC9D19 /* WindowEnumerator.swift in Sources */,
+				B636CD24705D3BC7035FBC27 /* WindowInfo.swift in Sources */,
+				3E09891A61B53D2FA9F7419D /* WindowListRow.swift in Sources */,
+				62DFA695B65214C952546366 /* WindowListViewModel.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3C4CAADB6FB4D0422C79A137 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		7C7B86E17808D6ACECA4ED5C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+		963514A5F740224774146E8D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/RecordPlusPlus.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.recordplusplus.app;
+				PRODUCT_NAME = "Record++";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		9EE16203D048923B1873488F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Resources/RecordPlusPlus.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.recordplusplus.app;
+				PRODUCT_NAME = "Record++";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		9A77FDC12FEC7205864FD445 /* Build configuration list for PBXNativeTarget "RecordPlusPlus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9EE16203D048923B1873488F /* Debug */,
+				963514A5F740224774146E8D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F43609CEE6911A630B10C502 /* Build configuration list for PBXProject "RecordPlusPlus" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7C7B86E17808D6ACECA4ED5C /* Debug */,
+				3C4CAADB6FB4D0422C79A137 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 562B6C328B56BD95971351BF /* Project object */;
+}
