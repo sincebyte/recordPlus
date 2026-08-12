@@ -168,7 +168,7 @@ final class RecordingManager: ObservableObject {
                 self?.updateStatus()
             }
 
-        windowUpdateTimer = Timer.publish(every: 0.5, on: .main, in: .common)
+        windowUpdateTimer = Timer.publish(every: 0.05, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.updateWindowFrame()
