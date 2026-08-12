@@ -77,7 +77,7 @@ xcodebuild -project RecordPlusPlus.xcodeproj -scheme RecordPlusPlus -configurati
 
 启动：
 #+begin_src bash
-open /Users/van/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Debug/Record++.app
+open ~/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Debug/Record++.app
 #+end_src
 
 ** Release 构建（分发使用）
@@ -91,7 +91,7 @@ xcodebuild -project RecordPlusPlus.xcodeproj -scheme RecordPlusPlus -configurati
 
 启动：
 #+begin_src bash
-open /Users/van/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Release/Record++.app
+open ~/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Release/Record++.app
 #+end_src
 
 * 使用
