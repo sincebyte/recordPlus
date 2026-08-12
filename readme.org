@@ -7,6 +7,7 @@ Record++ 是一款 macOS 原生窗口录制应用，基于 ScreenCaptureKit 和 
 
 核心场景：录制 Emacs、Chrome、Terminal 等窗口，作为独立图层叠加到视频中，实现悬浮代码窗口效果。
 
+[[file:./intro.png]]
 * 架构
 
 项目采用 SwiftUI + MVVM 架构，共 9 个模块：
@@ -108,23 +109,6 @@ open ~/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Relea
 4. 点击录制按钮（或 =⌘R=）开始录制。
 5. 点击停止按钮（或 =⌘S=）结束录制。
 6. 输出文件保存在桌面，命名格式：=record_plus_plus_output_yyyyMMdd_HHmmss.mov=。
-
-** 验证输出
-
-#+begin_src bash
-./verify.sh ~/Desktop/record_plus_plus_output_*.mov
-#+end_src
-
-验证通过的标准：
-- =codec_name=prores=
-- =pix_fmt=yuva444p10le=
-
-** 在 DaVinci Resolve 中使用
-
-1. 将 =output.mov= 导入 Media Pool
-2. 拖入 Timeline
-3. 右键片段 → =Clip Attributes → Video=，确认 =Alpha Mode= 为 =Premultiplied= 或 =Straight=
-4. 在片段下方放置彩色背景，窗口外区域应显示背景色，窗口内容正常显示
 
 * 许可证
 
