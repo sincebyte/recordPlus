@@ -99,9 +99,16 @@ final class ProResEncoder: @unchecked Sendable {
         guard let writer = assetWriter, isWriting else { return }
         isWriting = false
 
-        if writer.status == .writing || writer.status == .unknown {
-            assetWriterInput?.markAsFinished()
+        let status = writer.status
+        if status == .failed || status == .cancelled {
+            assetWriter = nil
+            assetWriterInput = nil
+            pixelBufferAdaptor = nil
+            return
+        }
 
+        if status == .writing || status == .unknown {
+            assetWriterInput?.markAsFinished()
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 writer.finishWriting {
                     continuation.resume()
@@ -110,9 +117,7 @@ final class ProResEncoder: @unchecked Sendable {
         }
 
         if writer.status == .failed {
-            throw CaptureError.encoderWriteFailed(
-                writer.error?.localizedDescription ?? "Unknown finish error"
-            )
+            Logger.shared.error("Writer failed: \(writer.error?.localizedDescription ?? "unknown")")
         }
 
         assetWriter = nil

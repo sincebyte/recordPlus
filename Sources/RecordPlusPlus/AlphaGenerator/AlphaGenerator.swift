@@ -13,6 +13,9 @@ final class AlphaGenerator: @unchecked Sendable {
     private let threadgroupSize: MTLSize
     private var _config = AlphaConfig.default
     private var configLock = os_unfair_lock()
+    private var outputPool: CVPixelBufferPool?
+    private var poolWidth: Int = 0
+    private var poolHeight: Int = 0
 
     private var config: AlphaConfig {
         get {
@@ -130,19 +133,34 @@ final class AlphaGenerator: @unchecked Sendable {
     }
 
     private func createOutputPixelBuffer(width: Int, height: Int) throws -> CVPixelBuffer {
-        var pixelBuffer: CVPixelBuffer?
+        if let pool = outputPool, width == poolWidth && height == poolHeight {
+            var pixelBuffer: CVPixelBuffer?
+            let status = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer)
+            guard status == kCVReturnSuccess, let buffer = pixelBuffer else {
+                throw CaptureError.invalidPixelBuffer
+            }
+            return buffer
+        }
+
         let attrs: [String: Any] = [
+            kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
+            kCVPixelBufferWidthKey as String: width,
+            kCVPixelBufferHeightKey as String: height,
             kCVPixelBufferMetalCompatibilityKey as String: true,
             kCVPixelBufferIOSurfacePropertiesKey as String: [:]
         ]
-        let status = CVPixelBufferCreate(
-            kCFAllocatorDefault,
-            width, height,
-            kCVPixelFormatType_32BGRA,
-            attrs as CFDictionary,
-            &pixelBuffer
-        )
-        guard status == kCVReturnSuccess, let buffer = pixelBuffer else {
+        var newPool: CVPixelBufferPool?
+        let status = CVPixelBufferPoolCreate(kCFAllocatorDefault, nil, attrs as CFDictionary, &newPool)
+        guard status == kCVReturnSuccess, let pool = newPool else {
+            throw CaptureError.invalidPixelBuffer
+        }
+        outputPool = pool
+        poolWidth = width
+        poolHeight = height
+
+        var pixelBuffer: CVPixelBuffer?
+        let createStatus = CVPixelBufferPoolCreatePixelBuffer(kCFAllocatorDefault, pool, &pixelBuffer)
+        guard createStatus == kCVReturnSuccess, let buffer = pixelBuffer else {
             throw CaptureError.invalidPixelBuffer
         }
         return buffer

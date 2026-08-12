@@ -37,6 +37,7 @@ final class RecordingManager: ObservableObject {
     private var captureCanvasW: Int = 0
     private var captureCanvasH: Int = 0
     private var captureDisplayFrame: CGRect = .zero
+    private var borderRestoreWorkItem: DispatchWorkItem?
 
     var outputURL: URL? { frameProcessor?.outputURL }
 
@@ -130,7 +131,8 @@ final class RecordingManager: ObservableObject {
         startTime = Date()
 
         let fp = processor
-        captureManager.onFrameReceived = { buffer in
+        captureManager.onFrameReceived = { [weak self] buffer in
+            guard let self else { return }
             var pixelBuffer: CVPixelBuffer?
             pixelBuffer = CMSampleBufferGetImageBuffer(buffer)
             if pixelBuffer == nil {
@@ -166,7 +168,7 @@ final class RecordingManager: ObservableObject {
                 self?.updateStatus()
             }
 
-        windowUpdateTimer = Timer.publish(every: 0.1, on: .main, in: .common)
+        windowUpdateTimer = Timer.publish(every: 0.5, on: .main, in: .common)
             .autoconnect()
             .sink { [weak self] _ in
                 self?.updateWindowFrame()
@@ -181,6 +183,8 @@ final class RecordingManager: ObservableObject {
         timerCancellable = nil
         windowUpdateTimer?.cancel()
         windowUpdateTimer = nil
+        borderRestoreWorkItem?.cancel()
+        borderRestoreWorkItem = nil
 
         captureManager.onFrameReceived = nil
 
@@ -240,6 +244,8 @@ final class RecordingManager: ObservableObject {
         }
         let newFrame = CGRect(x: x, y: y, width: w, height: h)
         guard newFrame != lastWindowFrame else { return }
+
+        let isGrowing = newFrame.width > lastWindowFrame.width || newFrame.height > lastWindowFrame.height
         lastWindowFrame = newFrame
 
         let scale = CGFloat(captureCanvasW) / captureDisplayFrame.width
@@ -248,22 +254,65 @@ final class RecordingManager: ObservableObject {
         let contentW = Float(newFrame.width * scale)
         let contentH = Float(newFrame.height * scale)
 
-        let config = AlphaConfig(
-            keyColor: cgKeyColor,
-            threshold: threshold,
-            smoothness: smoothness,
-            spillSuppression: spillSuppression,
-            cornerRadius: cornerRadius,
-            width: Float(captureCanvasW),
-            height: Float(captureCanvasH),
-            borderColor: borderSIMD,
-            borderWidth: borderWidth,
-            contentWidth: contentW,
-            contentHeight: contentH,
-            windowX: winX,
-            windowY: winY
-        )
-        gen.updateConfig(config)
+        borderRestoreWorkItem?.cancel()
+
+        if isGrowing {
+            let config = AlphaConfig(
+                keyColor: cgKeyColor,
+                threshold: threshold,
+                smoothness: smoothness,
+                spillSuppression: spillSuppression,
+                cornerRadius: cornerRadius,
+                width: Float(captureCanvasW),
+                height: Float(captureCanvasH),
+                borderColor: borderSIMD,
+                borderWidth: 0,
+                contentWidth: contentW,
+                contentHeight: contentH,
+                windowX: winX,
+                windowY: winY
+            )
+            gen.updateConfig(config)
+
+            let workItem = DispatchWorkItem { [weak self] in
+                guard let self, let gen = self.generator, self.windowID != 0 else { return }
+                let restoreConfig = AlphaConfig(
+                    keyColor: self.cgKeyColor,
+                    threshold: self.threshold,
+                    smoothness: self.smoothness,
+                    spillSuppression: self.spillSuppression,
+                    cornerRadius: self.cornerRadius,
+                    width: Float(self.captureCanvasW),
+                    height: Float(self.captureCanvasH),
+                    borderColor: self.borderSIMD,
+                    borderWidth: self.borderWidth,
+                    contentWidth: contentW,
+                    contentHeight: contentH,
+                    windowX: winX,
+                    windowY: winY
+                )
+                gen.updateConfig(restoreConfig)
+            }
+            borderRestoreWorkItem = workItem
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+        } else {
+            let config = AlphaConfig(
+                keyColor: cgKeyColor,
+                threshold: threshold,
+                smoothness: smoothness,
+                spillSuppression: spillSuppression,
+                cornerRadius: cornerRadius,
+                width: Float(captureCanvasW),
+                height: Float(captureCanvasH),
+                borderColor: borderSIMD,
+                borderWidth: borderWidth,
+                contentWidth: contentW,
+                contentHeight: contentH,
+                windowX: winX,
+                windowY: winY
+            )
+            gen.updateConfig(config)
+        }
     }
 
     private static func createPixelBuffer(from sampleBuffer: CMSampleBuffer) -> CVPixelBuffer? {
