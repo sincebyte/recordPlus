@@ -23,6 +23,7 @@ final class RecordingManager: ObservableObject {
     @Published var cornerRadius: Float = 0
     @Published var borderColor: Color = Color(red: 0.82, green: 0.82, blue: 0.82)
     @Published var borderWidth: Float = 1
+    @Published var isWindowVisible = true
 
     private let captureManager = CaptureManager()
     private var frameProcessor: FrameProcessor?
@@ -38,6 +39,8 @@ final class RecordingManager: ObservableObject {
     private var captureCanvasH: Int = 0
     private var captureDisplayFrame: CGRect = .zero
     private var borderRestoreWorkItem: DispatchWorkItem?
+    private var blankFrameTimer: AnyCancellable?
+    private var lastFrameWrittenTime: Date = .distantPast
 
     var outputURL: URL? { frameProcessor?.outputURL }
 
@@ -70,6 +73,7 @@ final class RecordingManager: ObservableObject {
         isStopping = false
         frameCount = 0
         elapsedTime = "00:00:00"
+        isWindowVisible = true
 
         Task {
             do {
@@ -118,7 +122,7 @@ final class RecordingManager: ObservableObject {
         let enc = ProResEncoder(config: encoderConfig, outputURL: outputURL)
         try enc.startWriting()
 
-        let processor = FrameProcessor(generator: generator, encoder: enc, frameRate: selectedPreset.frameRate)
+        let processor = FrameProcessor(generator: generator, encoder: enc, frameRate: selectedPreset.frameRate, canvasWidth: canvasW, canvasHeight: canvasH)
         frameProcessor = processor
         self.generator = generator
         self.windowID = window.windowID
@@ -140,11 +144,18 @@ final class RecordingManager: ObservableObject {
             }
             guard let pixelBuffer = pixelBuffer else { return }
 
+            let visible = self.isWindowVisible
             Task {
                 do {
-                    try await fp.process(pixelBuffer)
+                    if visible {
+                        try await fp.process(pixelBuffer)
+                    } else {
+                        _ = pixelBuffer
+                        try await fp.processBlank()
+                    }
                     await MainActor.run {
                         self.frameCount += 1
+                        self.lastFrameWrittenTime = Date()
                     }
                 } catch {
                     Logger.shared.error("Frame: \(error.localizedDescription)")
@@ -185,6 +196,8 @@ final class RecordingManager: ObservableObject {
         windowUpdateTimer = nil
         borderRestoreWorkItem?.cancel()
         borderRestoreWorkItem = nil
+        blankFrameTimer?.cancel()
+        blankFrameTimer = nil
 
         captureManager.onFrameReceived = nil
 
@@ -233,86 +246,142 @@ final class RecordingManager: ObservableObject {
 
     private func updateWindowFrame() {
         guard let gen = generator, windowID != 0 else { return }
-        let windowList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
-        guard let windowInfo = windowList.first(where: { ($0[kCGWindowNumber as String] as? CGWindowID) == windowID }),
-              let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: Any],
-              let x = boundsDict["X"] as? CGFloat,
-              let y = boundsDict["Y"] as? CGFloat,
-              let w = boundsDict["Width"] as? CGFloat,
-              let h = boundsDict["Height"] as? CGFloat else {
-            return
-        }
-        let newFrame = CGRect(x: x, y: y, width: w, height: h)
-        guard newFrame != lastWindowFrame else { return }
 
-        let isGrowing = newFrame.width > lastWindowFrame.width || newFrame.height > lastWindowFrame.height
-        lastWindowFrame = newFrame
+        let onScreenList = CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]] ?? []
+        let onScreenWindow = onScreenList.first(where: { ($0[kCGWindowNumber as String] as? CGWindowID) == windowID })
 
-        let scale = CGFloat(captureCanvasW) / captureDisplayFrame.width
-        let winX = Float((newFrame.origin.x - captureDisplayFrame.origin.x) * scale)
-        let winY = Float((newFrame.origin.y - captureDisplayFrame.origin.y) * scale)
-        let contentW = Float(newFrame.width * scale)
-        let contentH = Float(newFrame.height * scale)
+        if let windowInfo = onScreenWindow {
+            if !isWindowVisible {
+                isWindowVisible = true
+                stopBlankFrameFallback()
+                Logger.shared.info("Window \(windowID) appeared — visible")
+            }
 
-        borderRestoreWorkItem?.cancel()
+            guard let boundsDict = windowInfo[kCGWindowBounds as String] as? [String: Any],
+                  let x = boundsDict["X"] as? CGFloat,
+                  let y = boundsDict["Y"] as? CGFloat,
+                  let w = boundsDict["Width"] as? CGFloat,
+                  let h = boundsDict["Height"] as? CGFloat else {
+                return
+            }
+            let newFrame = CGRect(x: x, y: y, width: w, height: h)
+            guard newFrame != lastWindowFrame else { return }
 
-        if isGrowing {
-            let config = AlphaConfig(
-                keyColor: cgKeyColor,
-                threshold: threshold,
-                smoothness: smoothness,
-                spillSuppression: spillSuppression,
-                cornerRadius: cornerRadius,
-                width: Float(captureCanvasW),
-                height: Float(captureCanvasH),
-                borderColor: borderSIMD,
-                borderWidth: 0,
-                contentWidth: contentW,
-                contentHeight: contentH,
-                windowX: winX,
-                windowY: winY
-            )
-            gen.updateConfig(config)
+            let isGrowing = newFrame.width > lastWindowFrame.width || newFrame.height > lastWindowFrame.height
+            lastWindowFrame = newFrame
 
-            let workItem = DispatchWorkItem { [weak self] in
-                guard let self, let gen = self.generator, self.windowID != 0 else { return }
-                let restoreConfig = AlphaConfig(
-                    keyColor: self.cgKeyColor,
-                    threshold: self.threshold,
-                    smoothness: self.smoothness,
-                    spillSuppression: self.spillSuppression,
-                    cornerRadius: self.cornerRadius,
-                    width: Float(self.captureCanvasW),
-                    height: Float(self.captureCanvasH),
-                    borderColor: self.borderSIMD,
-                    borderWidth: self.borderWidth,
+            let scale = CGFloat(captureCanvasW) / captureDisplayFrame.width
+            let winX = Float((newFrame.origin.x - captureDisplayFrame.origin.x) * scale)
+            let winY = Float((newFrame.origin.y - captureDisplayFrame.origin.y) * scale)
+            let contentW = Float(newFrame.width * scale)
+            let contentH = Float(newFrame.height * scale)
+
+            borderRestoreWorkItem?.cancel()
+
+            if isGrowing {
+                let config = AlphaConfig(
+                    keyColor: cgKeyColor,
+                    threshold: threshold,
+                    smoothness: smoothness,
+                    spillSuppression: spillSuppression,
+                    cornerRadius: cornerRadius,
+                    width: Float(captureCanvasW),
+                    height: Float(captureCanvasH),
+                    borderColor: borderSIMD,
+                    borderWidth: 0,
                     contentWidth: contentW,
                     contentHeight: contentH,
                     windowX: winX,
                     windowY: winY
                 )
-                gen.updateConfig(restoreConfig)
+                gen.updateConfig(config)
+
+                let workItem = DispatchWorkItem { [weak self] in
+                    guard let self, let gen = self.generator, self.windowID != 0 else { return }
+                    let restoreConfig = AlphaConfig(
+                        keyColor: self.cgKeyColor,
+                        threshold: self.threshold,
+                        smoothness: self.smoothness,
+                        spillSuppression: self.spillSuppression,
+                        cornerRadius: self.cornerRadius,
+                        width: Float(self.captureCanvasW),
+                        height: Float(self.captureCanvasH),
+                        borderColor: self.borderSIMD,
+                        borderWidth: self.borderWidth,
+                        contentWidth: contentW,
+                        contentHeight: contentH,
+                        windowX: winX,
+                        windowY: winY
+                    )
+                    gen.updateConfig(restoreConfig)
+                }
+                borderRestoreWorkItem = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
+            } else {
+                let config = AlphaConfig(
+                    keyColor: cgKeyColor,
+                    threshold: threshold,
+                    smoothness: smoothness,
+                    spillSuppression: spillSuppression,
+                    cornerRadius: cornerRadius,
+                    width: Float(captureCanvasW),
+                    height: Float(captureCanvasH),
+                    borderColor: borderSIMD,
+                    borderWidth: borderWidth,
+                    contentWidth: contentW,
+                    contentHeight: contentH,
+                    windowX: winX,
+                    windowY: winY
+                )
+                gen.updateConfig(config)
             }
-            borderRestoreWorkItem = workItem
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15, execute: workItem)
         } else {
-            let config = AlphaConfig(
-                keyColor: cgKeyColor,
-                threshold: threshold,
-                smoothness: smoothness,
-                spillSuppression: spillSuppression,
-                cornerRadius: cornerRadius,
-                width: Float(captureCanvasW),
-                height: Float(captureCanvasH),
-                borderColor: borderSIMD,
-                borderWidth: borderWidth,
-                contentWidth: contentW,
-                contentHeight: contentH,
-                windowX: winX,
-                windowY: winY
-            )
-            gen.updateConfig(config)
+            let allList = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+            let existingWindow = allList.first(where: { ($0[kCGWindowNumber as String] as? CGWindowID) == windowID })
+
+            if existingWindow != nil {
+                if isWindowVisible {
+                    isWindowVisible = false
+                    startBlankFrameFallback()
+                    Logger.shared.info("Window \(windowID) hidden — writing blank frames")
+                }
+            } else {
+                if isWindowVisible {
+                    isWindowVisible = false
+                    startBlankFrameFallback()
+                    Logger.shared.info("Window \(windowID) disappeared from window list")
+                }
+            }
         }
+    }
+
+    private func startBlankFrameFallback() {
+        guard blankFrameTimer == nil, frameProcessor != nil else { return }
+        let interval = 1.0 / Double(selectedPreset.frameRate)
+        blankFrameTimer = Timer.publish(every: interval, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, let fp = self.frameProcessor, !self.isWindowVisible else { return }
+                let elapsed = Date().timeIntervalSince(self.lastFrameWrittenTime)
+                guard elapsed >= interval else { return }
+
+                Task {
+                    do {
+                        try await fp.processBlank()
+                        await MainActor.run {
+                            self.frameCount += 1
+                            self.lastFrameWrittenTime = Date()
+                        }
+                    } catch {
+                        Logger.shared.error("Blank fallback: \(error.localizedDescription)")
+                    }
+                }
+            }
+    }
+
+    private func stopBlankFrameFallback() {
+        blankFrameTimer?.cancel()
+        blankFrameTimer = nil
     }
 
     private static func createPixelBuffer(from sampleBuffer: CMSampleBuffer) -> CVPixelBuffer? {

@@ -40,11 +40,11 @@ struct RecordingControlView: View {
         VStack(spacing: 8) {
             HStack {
                 Circle()
-                    .fill(.red)
+                    .fill(recordingManager.isWindowVisible ? .red : .orange)
                     .frame(width: 10, height: 10)
-                Text("Recording")
+                Text(recordingManager.isWindowVisible ? "Recording" : "Window Hidden")
                     .font(.headline)
-                    .foregroundColor(.red)
+                    .foregroundColor(recordingManager.isWindowVisible ? .red : .orange)
 
                 Spacer()
 
