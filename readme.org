@@ -66,13 +66,33 @@ SCStream (窗口捕获, BGRA)
    ./build.sh
    #+end_src
 
-3. 或在 Xcode 中手动构建：选择 =RecordPlusPlus= scheme，按 =⌘B= 编译。
+** Debug 构建（开发调试）
 
-4. 命令行构建：
-   #+begin_src bash
-   xcodegen generate
-   xcodebuild -project RecordPlusPlus.xcodeproj -scheme RecordPlusPlus -configuration Release build
-   #+end_src
+不加优化，编译快，含调试符号，适合日常开发。
+
+#+begin_src bash
+xcodegen generate
+xcodebuild -project RecordPlusPlus.xcodeproj -scheme RecordPlusPlus -configuration Debug build
+#+end_src
+
+启动：
+#+begin_src bash
+open /Users/van/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Debug/Record++.app
+#+end_src
+
+** Release 构建（分发使用）
+
+开启编译器优化，去除调试符号，性能更好，编译较慢。
+
+#+begin_src bash
+xcodegen generate
+xcodebuild -project RecordPlusPlus.xcodeproj -scheme RecordPlusPlus -configuration Release build
+#+end_src
+
+启动：
+#+begin_src bash
+open /Users/van/Library/Developer/Xcode/DerivedData/RecordPlusPlus-*/Build/Products/Release/Record++.app
+#+end_src
 
 * 使用
 
