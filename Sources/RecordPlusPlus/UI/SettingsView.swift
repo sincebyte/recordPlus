@@ -4,9 +4,9 @@ struct SettingsView: View {
     @ObservedObject var recordingManager: RecordingManager
 
     private let presets: [EncoderConfig] = [
-        .hd1080p30, .hd1080p60,
-        .qhd1440p30, .qhd1440p60,
-        .uhd2160p30, .uhd2160p60
+        .hd1080p60, .hd1080p30,
+        .qhd1440p60, .qhd1440p30,
+        .uhd2160p60, .uhd2160p30
     ]
 
     var body: some View {

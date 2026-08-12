@@ -19,7 +19,7 @@ final class RecordingManager: ObservableObject {
     @Published var threshold: Float = 0.2
     @Published var smoothness: Float = 0.15
     @Published var spillSuppression: Float = 0.3
-    @Published var selectedPreset: EncoderConfig = .hd1080p30
+    @Published var selectedPreset: EncoderConfig = .hd1080p60
     @Published var cornerRadius: Float = 0
     @Published var borderColor: Color = Color(red: 0.82, green: 0.82, blue: 0.82)
     @Published var borderWidth: Float = 1

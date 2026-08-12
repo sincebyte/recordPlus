@@ -1,3 +1,6 @@
 .build
 .tmp_npm
 .DS_Store
+Resources/AppIcon.png
+Resources/AppIcon.icns
+Resources/Assets.xcassets/AppIcon.appiconset/icon_1024x1024.png

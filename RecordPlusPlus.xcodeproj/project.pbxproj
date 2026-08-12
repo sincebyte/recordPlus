@@ -20,7 +20,9 @@
 		70C376419FAE6F2FA4DC54AF /* AlphaConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9134E3B5EECF9CD3EB0FB0 /* AlphaConfig.swift */; };
 		794896424F53491F32ED8915 /* RecordingControlView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7023F2093790FA26A4364D3 /* RecordingControlView.swift */; };
 		806024186EC1566E9250AC3F /* FrameProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93D34B376258F5FD751AD95 /* FrameProcessor.swift */; };
+		8366A76865FEABBDAE3041C0 /* AppIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = D67C5A38F234911727CFEBFA /* AppIcon.icns */; };
 		8A015E376B3D8FB087DCEADD /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A034A6807AF6C4CC99870F3 /* ContentView.swift */; };
+		960A01669374749C65D162C8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3E29A73F23184C79E9B1C8B1 /* Assets.xcassets */; };
 		A0D8F8C2BCA2811F1DD52783 /* Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE10CD17122BAAB3EAC0CB7B /* Extensions.swift */; };
 		A76FA1AFBF88D13D3A195BAB /* AccessibilityScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EAC3444AF98F6CF1BC3CBB4 /* AccessibilityScanner.swift */; };
 		A95A8E4B57951CB615032755 /* StreamConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 646854BF8FE5B258B3FAD39E /* StreamConfiguration.swift */; };
@@ -39,6 +41,7 @@
 		27A94904F63A657657D519EF /* Logger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
 		2B46FCC9F8D16439CB6017E3 /* RecordPlusPlus.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RecordPlusPlus.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3220A1767F33958F4D66026F /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		3E29A73F23184C79E9B1C8B1 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		559AC1F5661E3ECFB8EDCBFE /* OutputValidator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutputValidator.swift; sourceTree = "<group>"; };
 		5959373A869B3CA12A63B3BF /* ExportManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportManager.swift; sourceTree = "<group>"; };
 		5CF2FFEC203B269B40A525CA /* CaptureManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptureManager.swift; sourceTree = "<group>"; };
@@ -53,6 +56,7 @@
 		CE10CD17122BAAB3EAC0CB7B /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
 		D1466C719EA72615118A8FAB /* WindowListViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowListViewModel.swift; sourceTree = "<group>"; };
 		D5AFB3FC3C2FE56F8504CC20 /* ProResEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProResEncoder.swift; sourceTree = "<group>"; };
+		D67C5A38F234911727CFEBFA /* AppIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = AppIcon.icns; sourceTree = "<group>"; };
 		DA7800C0969C0BBAD373E96A /* AlphaGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlphaGenerator.swift; sourceTree = "<group>"; };
 		DB08DF862053DE26C0A894EC /* WindowEnumerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WindowEnumerator.swift; sourceTree = "<group>"; };
 		DFDF2AEE361F950D4BF05E56 /* EncoderConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EncoderConfig.swift; sourceTree = "<group>"; };
@@ -130,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				15A6328126CD28C37EDDD675 /* RecordPlusPlus */,
+				2F441E5DDFE19F8F679C7AC5 /* Resources */,
 				05B2FF06C13CD3248A3214DA /* Products */,
 			);
 			sourceTree = "<group>";
@@ -141,6 +146,15 @@
 				27A94904F63A657657D519EF /* Logger.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		2F441E5DDFE19F8F679C7AC5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D67C5A38F234911727CFEBFA /* AppIcon.icns */,
+				3E29A73F23184C79E9B1C8B1 /* Assets.xcassets */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		41481684C386D2D8A17E252D /* CaptureEngine */ = {
@@ -192,7 +206,9 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9A77FDC12FEC7205864FD445 /* Build configuration list for PBXNativeTarget "RecordPlusPlus" */;
 			buildPhases = (
+				B11247B5FE5CBDA574C70F3F /* Generate App Icon */,
 				D0D97303C636DB9AF6FD42CB /* Sources */,
+				44DF7FAB4EB333106F23BBB2 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -234,6 +250,39 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		44DF7FAB4EB333106F23BBB2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8366A76865FEABBDAE3041C0 /* AppIcon.icns in Resources */,
+				960A01669374749C65D162C8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		B11247B5FE5CBDA574C70F3F /* Generate App Icon */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Generate App Icon";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 \"${PROJECT_DIR}/Resources/generate_icon.py\"";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D0D97303C636DB9AF6FD42CB /* Sources */ = {
